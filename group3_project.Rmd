@@ -1,0 +1,27 @@
+---
+title: "Group3"
+author: "Andrea Dest"
+date: "10/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+__Load in Lyrics Data__
+```{r}
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv", header =T)
+
+```
+
+```{r}
+lyrics_swift <- mutate(lyrics_swift, total_words = str_count(Lyrics, '\\w+'))
+total_word_plot <- ggplot(lyrics_swift, aes(x=Album, y=total_words)) + geom_boxplot() + ylab("Total Words") + ggtitle("Total Words by Album")
+total_word_plot + geom_point(stat = "summary", fun="mean", color="red", size =2)
+```
+
+
