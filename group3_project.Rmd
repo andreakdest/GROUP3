@@ -38,7 +38,6 @@ pronouns <- lyrics_swift %>%
   mutate(him=(str_count(Lyrics, "him"))) %>%
   mutate(me=(str_count(Lyrics, "me"))) %>%
   mutate(I=(str_count(Lyrics, "I"))) %>%
-  mutate(total_pronouns=her+her+they+them+she+him+me+I) %>%
   pivot_longer(her:I, names_to = "pronoun_type", values_to="values") %>%
   mutate(type = case_when(xor(pronoun_type == "her", pronoun_type == "she") ~ "female",
                          xor(pronoun_type == "he", pronoun_type == "him") ~ "male", 
