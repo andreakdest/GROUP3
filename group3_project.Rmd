@@ -33,9 +33,13 @@ pronouns <- lyrics_swift %>%
   mutate(he=(str_count(Lyrics, "he"))) %>%
   mutate(they=(str_count(Lyrics, "they"))) %>%
   mutate(them=(str_count(Lyrics, "them"))) %>%
-  mutate(total_pronouns=her+her+they+them)
+  mutate(she=(str_count(Lyrics, "she"))) %>%
+  mutate(him=(str_count(Lyrics, "him"))) %>%
+  mutate(total_pronouns=her+her+they+them+she+him) %>%
+  pivot_longer(her:him, names_to = "pronoun_type", values_to="values")
 
-pronoun_plot <- ggplot(pronouns, aes(x=Title, y=total_pronouns, size = total_pronouns)) + geom_point(alpha =0.1) + xlab("Album Name") + ylab("Pronoun Use")
-pronoun_plot + facet_wrap(~Album, ncol = 3)
+pronoun_plot <- ggplot(pronouns, aes(x=Album, y= Title, size = total_pronouns)) + geom_point(alpha =0.7) + scale_size(range = c(.1, 3)) + xlab("Album Name") + ylab("Song") + ggtitle("Use of Pronouns by Type") + theme(legend.position="bottom") + theme(axis.text.y=element_blank()) + theme(axis.text.x = element_text(angle=45))
+
+pronoun_plot + facet_wrap(~pronoun_type, ncol =3)
 ```
 
