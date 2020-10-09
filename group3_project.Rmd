@@ -14,14 +14,28 @@ __Load in Lyrics Data__
 library(tidyverse)
 library(data.table)
 library(ggplot2)
+library(dplyr)
 lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv", header =T)
 
 ```
 
+Make a Boxplot to show number of words in each Album 
 ```{r}
-lyrics_swift <- mutate(lyrics_swift, total_words = str_count(Lyrics, '\\w+'))
+lyrics_swift <- mutate(lyrics_swift, total_words = sapply(strsplit(lyrics_swift$Lyrics, " "), length))
 total_word_plot <- ggplot(lyrics_swift, aes(x=Album, y=total_words)) + geom_boxplot() + ylab("Total Words") + ggtitle("Total Words by Album")
 total_word_plot + geom_point(stat = "summary", fun="mean", color="red", size =2)
 ```
 
+Make a graph to visualize pronouns used in each album
+```{r}
+pronouns <- lyrics_swift %>%
+  mutate(her=(str_count(Lyrics, "her"))) %>%
+  mutate(he=(str_count(Lyrics, "he"))) %>%
+  mutate(they=(str_count(Lyrics, "they"))) %>%
+  mutate(them=(str_count(Lyrics, "them"))) %>%
+  mutate(total_pronouns=her+her+they+them)
+
+pronoun_plot <- ggplot(pronouns, aes(x=Title, y=total_pronouns, size = total_pronouns)) + geom_point(alpha =0.1) + xlab("Album Name") + ylab("Pronoun Use")
+pronoun_plot + facet_wrap(~Album, ncol = 3)
+```
 
