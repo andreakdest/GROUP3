@@ -15,6 +15,7 @@ library(tidyverse)
 library(data.table)
 library(ggplot2)
 library(dplyr)
+library(viridis)
 lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv", header =T)
 
 ```
@@ -35,11 +36,18 @@ pronouns <- lyrics_swift %>%
   mutate(them=(str_count(Lyrics, "them"))) %>%
   mutate(she=(str_count(Lyrics, "she"))) %>%
   mutate(him=(str_count(Lyrics, "him"))) %>%
-  mutate(total_pronouns=her+her+they+them+she+him) %>%
-  pivot_longer(her:him, names_to = "pronoun_type", values_to="values")
+  mutate(me=(str_count(Lyrics, "me"))) %>%
+  mutate(I=(str_count(Lyrics, "I"))) %>%
+  mutate(total_pronouns=her+her+they+them+she+him+me+I) %>%
+  pivot_longer(her:I, names_to = "pronoun_type", values_to="values") %>%
+  mutate(type = case_when(xor(pronoun_type == "her", pronoun_type == "she") ~ "female",
+                         xor(pronoun_type == "he", pronoun_type == "him") ~ "male", 
+                         xor(pronoun_type == "they", pronoun_type == "them") ~ "non binary",
+                         xor(pronoun_type == "I", pronoun_type == "me") ~ "I"
+))
 
-pronoun_plot <- ggplot(pronouns, aes(x=Album, y= Title, size = total_pronouns)) + geom_point(alpha =0.7) + scale_size(range = c(.1, 3)) + xlab("Album Name") + ylab("Song") + ggtitle("Use of Pronouns by Type") + theme(legend.position="bottom") + theme(axis.text.y=element_blank()) + theme(axis.text.x = element_text(angle=45))
+pronoun_plot <- ggplot(pronouns, aes(x=Title, y=values, size = values)) + geom_point(alpha =0.7, aes(color = pronoun_type)) + scale_size(range = c(.1, 3)) + ggtitle("Use of Pronouns by Type") + ylab("Total Number of Each Pronoun") + xlab("Songs") + theme(legend.position="bottom") + theme(axis.text.x=element_blank())
 
-pronoun_plot + facet_wrap(~pronoun_type, ncol =3)
+pronoun_plot + facet_grid(type~Album, scales ="free_y")
 ```
 
