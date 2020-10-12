@@ -1,0 +1,60 @@
+---
+title: "WIP_sk"
+author: "skrauklis"
+date: "10/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+##picking up where Andrea left off
+
+song lengths and writers taken from album notes via wikipedia
+```{r}
+tdisc<-read.csv("C:\\Users\\krauk\\Desktop\\GROUP3\\Tswift - Sheet1.csv")
+```
+
+```{r}
+#fix apostrophe error
+lyrics_swift$Title<-gsub("â€™","'",lyrics_swift$Title)
+
+
+#add quotations/remove case to song titles
+tdisc$Title<-tolower(tdisc$Title)
+ls<-lyrics_swift
+ls$Title<-tolower(ls$Title)
+ls$Title<-paste0(v = paste0('"', ls$Title, '"'))
+```
+
+look at which match/dont match
+```{r}
+intersect(ls$Title,tdisc$Title)
+setdiff(tdisc$Title,ls$Title)
+```
+
+table so far
+```{r}
+temp<-merge.data.table(ls,tdisc, by=c("Title"))
+```
+
+```{r}
+library(lubridate)
+temp$Length<-ms(temp$Length)
+temp$Length<-as.numeric(as.period(temp$Length),unit="min")
+```
+
+```{r}
+wpm<-temp$total_words/temp$Length
+temp<-cbind(temp,wpm)
+```
+
+```{r}
+ggplot(temp,aes(x=temp$Title,y=temp$wpm))+geom_bar(stat="identity")
+
+ggplot(temp,aes(x=temp$Album,y=temp$wpm))+geom_boxplot()+
+  ggtitle("Words Per Minute by Album") + ylab("Words per Minute")+xlab("Album")+geom_point(stat = "summary", fun="mean", color="red", size =2)
+```
