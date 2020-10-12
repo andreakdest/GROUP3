@@ -1,0 +1,164 @@
+---
+title: "Untitled"
+author: "Shujie_Wu"
+date: "2020/10/9"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+__Load in Lyrics Data__
+```{r}
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(viridis)
+lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv", header =T)
+
+```
+
+## First variable: total words in each album
+__1. Make a boxplot to show number of words in each album and descriptive statistics__
+```{r}
+#Count the total words in each song and make a new variable in the table
+lyrics_swift <- mutate(lyrics_swift, total_words = sapply(strsplit(lyrics_swift$Lyrics, " "), length))
+#Plot the total words of songs in each album
+total_word_plot <- ggplot(lyrics_swift, aes(x=Album, y=total_words)) + geom_boxplot() + ylab("Total Words") + ggtitle("Total Words by Album")
+total_word_plot + geom_point(stat = "summary", fun="mean", color="red", size =2)
+```
+
+__2. Statistical data for total words__
+```{r}
+#basic stats
+stat_words<-lyrics_swift%>%
+  group_by(Album)%>%
+  summarise(mean_words = mean(total_words), 
+            variance_words = var(total_words), 
+            sd_words = sd(total_words),
+            median_words = median(total_words),
+            range_words = max(total_words)-min(total_words))
+print(stat_words)
+```
+
+## Second variable: different types of pronouns in each album
+__1. Make a graph to visualize pronouns used in each album and descriptive statistics__
+```{r}
+#Count each type of pronouns
+pronouns <- lyrics_swift %>%
+  mutate(her=(str_count(Lyrics, "her"))) %>%
+  mutate(he=(str_count(Lyrics, "he"))) %>%
+  mutate(they=(str_count(Lyrics, "they"))) %>%
+  mutate(them=(str_count(Lyrics, "them"))) %>%
+  mutate(she=(str_count(Lyrics, "she"))) %>%
+  mutate(him=(str_count(Lyrics, "him"))) %>%
+  mutate(me=(str_count(Lyrics, "me"))) %>%
+  mutate(I=(str_count(Lyrics, "I"))) %>%
+  pivot_longer(her:I, names_to = "pronoun_type", values_to="values") %>%
+  mutate(type = case_when(xor(pronoun_type == "her", pronoun_type == "she") ~ "female",
+                         xor(pronoun_type == "he", pronoun_type == "him") ~ "male", 
+                         xor(pronoun_type == "they", pronoun_type == "them") ~ "non binary",
+                         xor(pronoun_type == "I", pronoun_type == "me") ~ "I"
+))
+
+#Make the graph 
+pronoun_plot <- ggplot(pronouns, aes(x=Title, y=values, size = values)) + geom_point(alpha =0.7, aes(color = pronoun_type)) + scale_size(range = c(.1, 3)) + ggtitle("Use of Pronouns by Type") + ylab("Total Number of Each Pronoun") + xlab("Songs") + theme(legend.position="bottom") + theme(axis.text.x=element_blank())
+pronoun_plot + facet_grid(type~Album, scales ="free_y")
+```
+
+__2. Statistical data for pronouns__
+```{r}
+#Basic stats
+stat_pronouns<-pronouns%>%
+  group_by(Album,type)%>%
+  summarise(mean_pronouns = mean(values), 
+            var_pronouns = var(values), 
+            sd_pronouns = sd(values),
+            median_pronouns = median(values),
+            range_pronouns = max(values)-min(values))
+print(stat_pronouns)
+```
+
+## Third Variable: Song lengths and writers taken from album notes via wikipedia
+__1. Read song lengths data__
+```{r}
+tdisc<-read.csv("https://raw.githubusercontent.com/andreakdest/GROUP3/main/Tswift%20-%20Sheet1.csv")
+```
+
+__2. Create a new table for__
+```{r}
+#fix apostrophe error
+lyrics_swift$Title<-gsub("â€™","'",lyrics_swift$Title)
+
+#add quotations/remove case to song titles
+tdisc$Title<-tolower(tdisc$Title)
+ls<-lyrics_swift
+ls$Title<-tolower(ls$Title)
+ls$Title<-paste0(v = paste0('"', ls$Title, '"'))
+```
+
+__3. Look at which match/dont match__
+```{r}
+intersect(ls$Title,tdisc$Title)
+setdiff(tdisc$Title,ls$Title)
+```
+
+__4. Combine tables so far__
+```{r}
+temp<-merge.data.table(ls,tdisc, by=c("Title"))
+```
+
+__5. Get rid of the units in time length__
+```{r}
+library(lubridate)
+temp$Length<-ms(temp$Length)
+temp$Length<-as.numeric(as.period(temp$Length),unit="min")
+```
+
+__6. Create the new variable words/minute__
+```{r}
+wpm<-temp$total_words/temp$Length
+temp<-cbind(temp,wpm)
+```
+
+__7. Plot the new variable__
+```{r}
+ggplot(temp,aes(x=temp$Title,y=temp$wpm))+geom_bar(stat="identity")
+
+ggplot(temp,aes(x=temp$Album,y=temp$wpm))+geom_boxplot()+
+  ggtitle("Words Per Minute by Album") + ylab("Words per Minute")+xlab("Album")+geom_point(stat = "summary", fun="mean", color="red", size =2)
+```
+
+__8. Make some statistical analysis on the new variable__
+```{r}
+#Basic stats
+stat_wpm<-temp%>%
+  group_by(Album)%>%
+  summarise(mean_wpm = mean(wpm), 
+            var_wpm = var(wpm), 
+            sd_wpm = sd(wpm))
+print(stat_wpm)
+
+#Study how does wpm differs from Taylor being the only writer and Taylor writing with others
+temp$Writer.s.<-gsub("Taylor Swift", "Swift", temp$Writer.s.)
+temp1<-filter(temp, temp$Writer.s.=="Swift")
+temp2<-filter(temp, temp$Writer.s.!="Swift")
+(by_Swift_only<-summary(temp1$wpm))
+(by_Swift_others<-summary(temp2$wpm))
+#Lyrics co-composed by Swift and others are more intense in terms of wpm than lyrics written by only Swift
+
+#Study how does wpm changes corresponding to song length
+lm_1<-lm(temp$wpm~temp$Length)
+print(lm_1)
+anova(lm_1)
+summary(lm_1)
+#make a plot of the regression
+ggplot(temp,aes(y = wpm, x = Length))+
+  geom_point()+
+  geom_smooth(method = lm, se = F)+
+  ggtitle("Wpm versus song length")+
+  labs(x = "Song Length", y = "Wpm")
+```
+
