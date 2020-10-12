@@ -16,18 +16,20 @@ library(data.table)
 library(ggplot2)
 library(dplyr)
 library(viridis)
+library(ggridges)
 lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv", header =T)
 
 ```
 
 ## First variable: Total words in each album
-__1. Make a boxplot to show number of words in each album and descriptive statistics__
+__1. Make a ridgeline plot to show number of words in each album and descriptive statistics__
 ```{r}
 #Count the total words in each song and make a new variable in the table
 lyrics_swift <- mutate(lyrics_swift, total_words = sapply(strsplit(lyrics_swift$Lyrics, " "), length))
 #Plot the total words of songs in each album
-total_word_plot <- ggplot(lyrics_swift, aes(x=Album, y=total_words)) + geom_boxplot() + ylab("Total Words") + ggtitle("Total Words by Album")
-total_word_plot + geom_point(stat = "summary", fun="mean", color="red", size =2)
+total_word_plot <- ggplot(lyrics_swift, aes(x=total_words, y=Album, fill = stat(x))) + geom_density_ridges_gradient(scale = 1.2, rel_min_height = 0.01) +
+  scale_fill_viridis_c(name = "Total Words", option = "C") + ylab("Albums") + xlab("Total Words") + ggtitle("Total Words by Album")
+total_word_plot
 ```
 
 __2. Statistical data for total words__
