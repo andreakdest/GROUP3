@@ -20,7 +20,7 @@ lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytue
 
 ```
 
-## First variable: total words in each album
+## First variable: Total words in each album
 __1. Make a boxplot to show number of words in each album and descriptive statistics__
 ```{r}
 #Count the total words in each song and make a new variable in the table
@@ -43,7 +43,7 @@ stat_words<-lyrics_swift%>%
 print(stat_words)
 ```
 
-## Second variable: different types of pronouns in each album
+## Second variable: Different types of pronouns in each album
 __1. Make a graph to visualize pronouns used in each album and descriptive statistics__
 ```{r}
 #Count each type of pronouns
