@@ -1,6 +1,6 @@
 ---
-title: "Group3"
-author: "Andrea Dest"
+title: "CPSC 441 Group Project Group3"
+author: "Andrea Dest, Steven Krauklis, and Shujie Wu"
 date: "10/5/2020"
 output: html_document
 ---
@@ -9,7 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-__Load in Lyrics Data__
+## Introduction
+**The data set we are working with is the lyrics in albums of Taylor Swift. It is retrieved from the 2020/09/29 file of the tidytuesdayR database. We are particularly interested in the total words of each album, the number of different types of pronouns of each album, and how words per minute differ in each album and by writers.**
+
+## Initial Setup: load in Lyrics Data
 ```{r}
 library(tidyverse)
 library(data.table)
@@ -22,7 +25,7 @@ lyrics_swift <- fread("https://raw.githubusercontent.com/rfordatascience/tidytue
 ```
 
 ## First variable: Total words in each album
-__1. Make a ridgeline plot to show number of words in each album and descriptive statistics__
+__1. Create the new variable total words and make a ridgeline plot to show number of words in each album__
 ```{r}
 #Count the total words in each song and make a new variable in the table
 lyrics_swift <- mutate(lyrics_swift, total_words = sapply(strsplit(lyrics_swift$Lyrics, " "), length))
@@ -34,7 +37,7 @@ total_word_plot
 
 __2. Statistical data for total words__
 ```{r}
-#basic stats
+#Get stats about mean, variance, sd, median, and range for total words in each album
 stat_words<-lyrics_swift%>%
   group_by(Album)%>%
   summarise(mean_words = mean(total_words), 
@@ -44,6 +47,15 @@ stat_words<-lyrics_swift%>%
             range_words = max(total_words)-min(total_words))
 print(stat_words)
 ```
+
+__3. Save mean for total words as a text file__
+```{r}
+#Subset variables album and mean and save as a text file
+stat_words%>%
+  select(Album, mean_words)%>%
+  write.table(file = "Mean_totalwords_albums", quote = F, sep = "   ")
+```
+
 
 ## Second variable: Different types of pronouns in each album
 __1. Make a graph to visualize pronouns used in each album and descriptive statistics__
@@ -72,7 +84,7 @@ pronoun_plot + facet_grid(type~Album, scales ="free_y")
 
 __2. Statistical data for pronouns__
 ```{r}
-#Basic stats
+#Get stats about mean, variance, sd, median, and range for different types of pronouns in each album
 stat_pronouns<-pronouns%>%
   group_by(Album,type)%>%
   summarise(mean_pronouns = mean(values), 
@@ -83,13 +95,22 @@ stat_pronouns<-pronouns%>%
 print(stat_pronouns)
 ```
 
+__3. Save mean of each pronouns as a text file__
+```{r}
+#Subset variables album and mean and save as a text file
+stat_pronouns%>%
+  select(Album, type, mean_pronouns)%>%
+  write.table(file = "Mean_pronouns_albums", sep = "   ", quote = F)
+```
+
+
 ## Third Variable: Song lengths and writers taken from album notes via wikipedia
 __1. Read song lengths data__
 ```{r}
 tdisc<-read.csv("https://raw.githubusercontent.com/andreakdest/GROUP3/main/Tswift%20-%20Sheet1.csv")
 ```
 
-__2. Create a new table for__
+__2. Get song names fixed__
 ```{r}
 #fix apostrophe error
 lyrics_swift$Title<-gsub("â€™","'",lyrics_swift$Title)
@@ -107,7 +128,7 @@ intersect(ls$Title,tdisc$Title)
 setdiff(tdisc$Title,ls$Title)
 ```
 
-__4. Combine tables so far__
+__4. Combine tables we have so far__
 ```{r}
 temp<-merge.data.table(ls,tdisc, by=c("Title"))
 ```
@@ -127,20 +148,31 @@ temp<-cbind(temp,wpm)
 
 __7. Plot the new variable__
 ```{r}
-ggplot(temp,aes(x=temp$Title,y=temp$wpm))+geom_bar(stat="identity")
-
-ggplot(temp,aes(x=temp$Album,y=temp$wpm))+geom_boxplot()+
-  ggtitle("Words Per Minute by Album") + ylab("Words per Minute")+xlab("Album")+geom_point(stat = "summary", fun="mean", color="red", size =2)
+#Plot wpm for each song in each album
+ggplot(temp,aes(x=temp$Title,y=temp$wpm))+
+  geom_bar(stat="identity")+
+  facet_wrap(vars(Album), scales ="free")+
+  theme(axis.text.x = element_blank())+
+  ggtitle("Words Per Minute by Song")+
+  labs(y = "WPM", x = "Songs of Each Album")
+#Plot wpm for each album
+ggplot(temp,aes(x=temp$Album,y=temp$wpm))+
+  geom_boxplot()+
+  ggtitle("Words Per Minute by Album") + 
+  ylab("Words per Minute")+xlab("Album")+
+  geom_point(stat = "summary", fun="mean", color="red", size =2)
 ```
 
-__8. Make some statistical analysis on the new variable__
+__8. Make some statistical analysis on wpm__
 ```{r}
-#Basic stats
+#Get stats about mean, variance, sd, median, and range for wpm in each album
 stat_wpm<-temp%>%
   group_by(Album)%>%
   summarise(mean_wpm = mean(wpm), 
             var_wpm = var(wpm), 
-            sd_wpm = sd(wpm))
+            sd_wpm = sd(wpm),
+            median_wpm = median(wpm),
+            range_wpm = max(wpm)-min(wpm))
 print(stat_wpm)
 
 #Study how does wpm differs from Taylor being the only writer and Taylor writing with others
@@ -152,6 +184,7 @@ temp2<-filter(temp, temp$Writer.s.!="Swift")
 #Lyrics co-composed by Swift and others are more intense in terms of wpm than lyrics written by only Swift
 
 #Study how does wpm changes corresponding to song length
+#Fit the data into a linear regression model and make an ANOVA
 lm_1<-lm(temp$wpm~temp$Length)
 print(lm_1)
 anova(lm_1)
@@ -163,3 +196,12 @@ ggplot(temp,aes(y = wpm, x = Length))+
   ggtitle("Wpm versus song length")+
   labs(x = "Song Length", y = "Wpm")
 ```
+
+__9. Save mean of wpm as a text file__
+```{r}
+#Subset variables album and mean and save as a text file
+stat_wpm%>%
+  select(Album, mean_wpm)%>%
+  write.table(file = "Mean_wpm_albums", sep = "   ", quote = F)
+```
+
